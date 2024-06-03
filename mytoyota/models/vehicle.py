@@ -2,7 +2,7 @@
 import asyncio
 import copy
 import json
-from datetime import date
+from datetime import date, timedelta
 from functools import partial
 from itertools import groupby
 from operator import attrgetter
@@ -86,9 +86,18 @@ class Vehicle:
                 "function": partial( self._api.get_climate_settings_endpoint, vin=vehicle_info.vin),
             },
             {
-                "name": "climate_status",
-                "capable": vehicle_info.features.climate_start_engine,
-                "function": partial(self._api.get_climate_status_endpoint, vin=vehicle_info.vin),
+                "name": "trip_history",
+                "capable": True,
+                "function": partial(
+                    self._api.get_trips_endpoint,
+                    vin=vehicle_info.vin,
+                    from_date=(date.today() - timedelta(days=90)),
+                    to_date=date.today(),
+                    summary=False,
+                    limit=10,
+                    offset=0,
+                    route=False,
+                ),
             },
         ]
         self._endpoint_collect = [
@@ -268,19 +277,6 @@ class Vehicle:
 
         return None
 
-    def get_latest_service_history(self) -> Optional[ServiceHistory]:
-        r"""Return the latest service history entry for the vehicle.
-
-        Returns
-        -------
-            Optional[ServiceHistory]: A service history entry for the vehicle,
-            ordered by date and service_category. None if not supported or unknown.
-
-        """
-        if self.service_history is not None:
-            return max(self.service_history, key=lambda x: (x.service_date, x.service_category))
-        return None
-
     @property
     def lock_status(self) -> Optional[LockStatus]:
         """Returns the latest lock status of Doors & Windows.
@@ -295,6 +291,54 @@ class Vehicle:
             self._endpoint_data["status"] if "status" in self._endpoint_data else None
         )
 
+    @property
+    def last_trip(self) -> Optional[Trip]:
+        """Returns the Vehicle last trip.
+
+        Returns
+        -------
+            Optional[Trip]
+
+        """
+        ret = None
+        if "trip_history" in self._endpoint_data:
+            ret = next(iter(self._endpoint_data["trip_history"].payload.trips), None)
+
+        if ret is None:
+            return None
+
+        return Trip(ret, self._metric)
+
+    @property
+    def trip_history(self) -> Optional[List[Trip]]:
+        """Returns the Vehicle trips.
+
+        Returns
+        -------
+            Optional[List[Trip]]
+
+        """
+        if "trip_history" in self._endpoint_data:
+            ret: List[Trip] = []
+            payload = self._endpoint_data["trip_history"].payload
+            ret.extend(Trip(t, self._metric) for t in payload.trips)
+            return ret
+
+        return None
+    
+    def get_latest_service_history(self) -> Optional[ServiceHistory]:
+        r"""Return the latest service history entry for the vehicle.
+
+        Returns
+        -------
+            Optional[ServiceHistory]: A service history entry for the vehicle,
+            ordered by date and service_category. None if not supported or unknown.
+
+        """
+        if self.service_history is not None:
+            return max(self.service_history, key=lambda x: (x.service_date, x.service_category))
+        return None
+    
     async def get_summary(
         self,
         from_date: date,
@@ -408,6 +452,67 @@ class Vehicle:
         )
         assert len(summary) < 2
         return summary[0] if len(summary) > 0 else None
+
+    async def get_trips(
+        self, from_date: date, to_date: date, full_route: bool = False
+    ) -> Optional[List[Trip]]:
+        """Return information on all trips made between the provided dates.
+
+        Args:
+        ----
+            from_date (date, required): The inclusive from date
+            to_date (date, required): The inclusive to date
+            full_route (bool, optional): Provide the full route information for each trip
+
+        Returns:
+        -------
+            Optional[List[Something]]: A list of all trips or None if not supported.
+
+        """
+        ret: List[Trip] = []
+        offset = 0
+        while True:
+            resp = await self._api.get_trips_endpoint(
+                self.vin,
+                from_date,
+                to_date,
+                summary=False,
+                limit=5,
+                offset=offset,
+                route=full_route,
+            )
+            if resp.payload is None:
+                break
+
+            # Convert to response
+            for t in resp.payload.trips:
+                ret.append(Trip(t, self._metric))
+
+            offset = resp.payload.metadata.pagination.next_offset
+            if offset is None:
+                break
+
+        return ret
+
+    async def get_last_trip(self) -> Optional[Trip]:
+        resp = await self._api.get_trips_endpoint(
+            self.vin,
+            date.today() - timedelta(days=90),
+            date.today(),
+            summary=False,
+            limit=1,
+            offset=0,
+            route=False,
+        )
+
+        if resp.payload is None:
+            return None
+
+        ret = next(iter(resp.payload.trips), None)
+        if ret is None:
+            return None
+
+        return Trip(ret, self._metric)
 
     async def get_trips(
         self, from_date: date, to_date: date, full_route: bool = False
