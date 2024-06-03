@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from mytoyota.client import MyT
 from mytoyota.models.endpoints.climate import ClimateSettingsModel, ACParameters, ACOperations
-from mytoyota.models.endpoints.command import CommandType, RemoteCommandModel
+from mytoyota.models.endpoints.command import CommandType
 from mytoyota.models.summary import SummaryType
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -51,7 +51,7 @@ async def get_information():
     for car in cars:
 
         # Send command to car
-        #pp.pprint(await car.post_command(RemoteCommandModel(command=CommandType.DOOR_LOCK)))
+        #pp.pprint(await car.post_command(command=CommandType.DOOR_LOCK))
         #exit()
 
         # Get climate status

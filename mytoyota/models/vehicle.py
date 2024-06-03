@@ -13,7 +13,7 @@ from arrow import Arrow
 from mytoyota.api import Api
 from mytoyota.models.dashboard import Dashboard
 from mytoyota.models.climate import ClimateSettings, ClimateStatus
-from mytoyota.models.endpoints.command import RemoteCommandModel
+from mytoyota.models.endpoints.command import CommandType
 from mytoyota.models.endpoints.common import StatusModel
 from mytoyota.models.endpoints.vehicle_guid import VehicleGuidModel
 from mytoyota.models.location import Location
@@ -562,8 +562,8 @@ class Vehicle:
         """
         return await self._api.refresh_climate_status(self.vin)
 
-    async def post_command(self, command: RemoteCommandModel) -> StatusModel:
-        return await self._api.post_command_endpoint(self.vin, command)
+    async def post_command(self, command: CommandType, beeps: int = 0) -> StatusModel:
+        return await self._api.post_command_endpoint(self.vin, command=command, beeps=beeps)
     
     #
     # More get functionality depending on what we find
