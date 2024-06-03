@@ -9,6 +9,7 @@ from mytoyota.const import (
     VEHICLE_CLIMATE_CONTROL_ENDPOINT,
     VEHICLE_CLIMATE_SETTINGS_ENDPOINT,
     VEHICLE_CLIMATE_STATUS_ENDPOINT,
+    VEHICLE_CLIMATE_STATUS_REFRESH_ENDPOINT,
     VEHICLE_COMMAND_ENDPOINT,
     VEHICLE_GLOBAL_REMOTE_ELECTRIC_STATUS_ENDPOINT,
     VEHICLE_GLOBAL_REMOTE_STATUS_ENDPOINT,
@@ -276,6 +277,16 @@ class Api:
         )
         _LOGGER.debug(msg=f"Parsed 'StatusModel': {parsed_response}")
         return parsed_response
+
+    async def refresh_climate_status(self, vin: str) -> StatusModel:
+        """Send command to the vehicle."""
+
+        parsed_response: StatusModel = await self._request_and_parse(
+            StatusModel, "POST", VEHICLE_CLIMATE_STATUS_REFRESH_ENDPOINT, vin=vin
+        )
+        _LOGGER.debug(msg=f"Parsed 'StatusModel': {parsed_response}")
+        return parsed_response
+    
     
     async def get_trips_endpoint(  # noqa: PLR0913
         self,
