@@ -12,6 +12,8 @@ from arrow import Arrow
 
 from mytoyota.api import Api
 from mytoyota.models.dashboard import Dashboard
+from mytoyota.models.endpoints.command import RemoteCommandModel
+from mytoyota.models.endpoints.common import StatusModel
 from mytoyota.models.endpoints.vehicle_guid import VehicleGuidModel
 from mytoyota.models.location import Location
 from mytoyota.models.lock_status import LockStatus
@@ -413,6 +415,9 @@ class Vehicle:
 
         return ret
 
+    async def post_command(self, command: RemoteCommandModel) -> StatusModel:
+        return await self._api.post_command_endpoint(self.vin, command)
+    
     #
     # More get functionality depending on what we find
     #

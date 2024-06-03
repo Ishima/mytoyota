@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from mytoyota.const import (
     VEHICLE_ASSOCIATION_ENDPOINT,
+    VEHICLE_COMMAND_ENDPOINT,
     VEHICLE_GLOBAL_REMOTE_ELECTRIC_STATUS_ENDPOINT,
     VEHICLE_GLOBAL_REMOTE_STATUS_ENDPOINT,
     VEHICLE_GUID_ENDPOINT,
@@ -17,6 +18,8 @@ from mytoyota.const import (
     VEHICLE_TRIPS_ENDPOINT,
 )
 from mytoyota.controller import Controller
+from mytoyota.models.endpoints.command import RemoteCommandModel
+from mytoyota.models.endpoints.common import StatusModel
 from mytoyota.models.endpoints.electric import ElectricResponseModel
 from mytoyota.models.endpoints.location import LocationResponseModel
 from mytoyota.models.endpoints.notifications import NotificationResponseModel
@@ -269,4 +272,13 @@ class Api:
             ServiceHistoryResponseModel, "GET", VEHICLE_SERVICE_HISTORY_ENDPONT, vin=vin
         )
         _LOGGER.debug(msg=f"Parsed 'ServiceHistoryResponseModel': {parsed_response}")
+        return parsed_response
+
+    async def post_command_endpoint(self, vin: str, command: RemoteCommandModel) -> StatusModel:
+        """Send command to the vehicle."""
+
+        parsed_response: StatusModel = await self._request_and_parse(
+            StatusModel, "POST", VEHICLE_COMMAND_ENDPOINT, vin=vin, body=command.dict(exclude_unset=True, by_alias=True)
+        )
+        _LOGGER.debug(msg=f"Parsed 'StatusModel': {parsed_response}")
         return parsed_response
