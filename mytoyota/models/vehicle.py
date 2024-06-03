@@ -12,6 +12,7 @@ from arrow import Arrow
 
 from mytoyota.api import Api
 from mytoyota.models.dashboard import Dashboard
+from mytoyota.models.climate import ClimateSettings, ClimateStatus
 from mytoyota.models.endpoints.command import RemoteCommandModel
 from mytoyota.models.endpoints.common import StatusModel
 from mytoyota.models.endpoints.vehicle_guid import VehicleGuidModel
@@ -78,6 +79,16 @@ class Vehicle:
                 "name": "service_history",
                 "capable": vehicle_info.features.service_history,
                 "function": partial(self._api.get_service_history_endpoint, vin=vehicle_info.vin),
+            },
+            {
+                "name": "climate_settings",
+                "capable": vehicle_info.features.climate_start_engine,
+                "function": partial( self._api.get_climate_settings_endpoint, vin=vehicle_info.vin),
+            },
+            {
+                "name": "climate_status",
+                "capable": vehicle_info.features.climate_start_engine,
+                "function": partial(self._api.get_climate_status_endpoint, vin=vehicle_info.vin),
             },
         ]
         self._endpoint_collect = [
@@ -172,6 +183,30 @@ class Vehicle:
             self._metric,
         )
 
+    @property
+    def climate_settings(self) -> Optional[ClimateSettings]:
+        """Return the vehicles climate settings.
+
+        Returns
+        -------
+            A climate settings
+
+        """
+
+        return ClimateSettings(self._endpoint_data.get("climate_settings", None))
+
+    @property
+    def climate_status(self) -> Optional[ClimateStatus]:
+        """Return the vehicles climate status.
+
+        Returns
+        -------
+            A climate status
+
+        """
+
+        return ClimateStatus(self._endpoint_data.get("climate_status", None))
+    
     @property
     def location(self) -> Optional[Location]:
         """Return the vehicles latest reported Location.
